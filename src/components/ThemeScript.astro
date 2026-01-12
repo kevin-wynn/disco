@@ -1,0 +1,20 @@
+<style>
+  html,
+  body {
+    background-color: white;
+  }
+  html.dark,
+  html.dark body {
+    background-color: #000000;
+  }
+</style>
+<script is:inline>
+  (function () {
+    const theme = localStorage.getItem("theme");
+    if (theme === "light") {
+      document.documentElement.classList.remove("dark");
+    } else {
+      document.documentElement.classList.add("dark");
+    }
+  })();
+</script>

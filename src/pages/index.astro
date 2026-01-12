@@ -1,0 +1,34 @@
+---
+import { eq } from "drizzle-orm";
+import { AlbumsGrid } from "../components/AlbumsGrid";
+import { Wrapper } from "../components/Wrapper";
+import ThemeScript from "../components/ThemeScript.astro";
+import { db } from "../db";
+import { albums, artists } from "../db/schema";
+import type { GridData } from "../types/album";
+
+const res = await db
+  .select()
+  .from(albums)
+  .leftJoin(artists, eq(albums.artistId, artists.id));
+---
+
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Disco</title>
+    <ThemeScript />
+  </head>
+  <body>
+    <Wrapper client:load currentPage={Astro.url.pathname}>
+      {
+        res.length > 0 && (
+          <AlbumsGrid client:only="react" data={res as GridData} />
+        )
+      }
+    </Wrapper>
+  </body>
+</html>

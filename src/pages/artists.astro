@@ -1,0 +1,35 @@
+---
+import { isNull } from "drizzle-orm";
+import { ArtistsGrid } from "../components/ArtistsGrid";
+import { Wrapper } from "../components/Wrapper";
+import ThemeScript from "../components/ThemeScript.astro";
+import { db } from "../db";
+import { artists } from "../db/schema";
+import type { Artist } from "../types/album";
+
+const res = await db.select().from(artists).where(isNull(artists.deletedAt));
+---
+
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Disco - Artists</title>
+    <ThemeScript />
+  </head>
+  <body>
+    <Wrapper client:load currentPage={Astro.url.pathname}>
+      {
+        res.length > 0 ? (
+          <ArtistsGrid client:only="react" data={res as Artist[]} />
+        ) : (
+          <div class="text-center py-8 text-gray-400">
+            No artists in your library yet.
+          </div>
+        )
+      }
+    </Wrapper>
+  </body>
+</html>

@@ -1,0 +1,60 @@
+---
+import { eq } from "drizzle-orm";
+import { Wrapper } from "../../components/Wrapper";
+import ThemeScript from "../../components/ThemeScript.astro";
+import { db } from "../../db";
+import {
+  albums,
+  artists,
+  tracks,
+  type Album,
+  type Artist,
+  type Track,
+} from "../../db/schema";
+import {
+  AlbumWithTracks,
+  type AlbumData,
+} from "../../components/AlbumWithTracks";
+
+const { id } = Astro.params;
+
+let album: AlbumData | undefined;
+
+if (!id) {
+  Astro.response.status = 404;
+  Astro.response.statusText = "Not found";
+} else {
+  const res = await db
+    .select()
+    .from(albums)
+    .where(eq(albums.id, parseInt(id)))
+    .leftJoin(artists, eq(albums.artistId, artists.id))
+    .leftJoin(tracks, eq(tracks.albumId, parseInt(id)));
+
+  const allTracks = res
+    .map((item) => item.tracks)
+    .filter((track): track is Track => track !== null);
+
+  album = {
+    ...res[0].albums,
+    artists: res[0].artists,
+    tracks: allTracks,
+  };
+}
+---
+
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Disco</title>
+    <ThemeScript />
+  </head>
+  <body>
+    <Wrapper client:load currentPage={Astro.url.pathname}>
+      <AlbumWithTracks client:load album={album as AlbumData} />
+    </Wrapper>
+  </body>
+</html>

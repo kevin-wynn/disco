@@ -1,0 +1,23 @@
+---
+import { SearchBar } from "../components/SearchBar";
+import { SearchResults } from "../components/SearchResults";
+import { Wrapper } from "../components/Wrapper";
+import ThemeScript from "../components/ThemeScript.astro";
+---
+
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Disco - Add New</title>
+    <ThemeScript />
+  </head>
+  <body>
+    <Wrapper client:load currentPage={Astro.url.pathname}>
+      <SearchBar client:load />
+      <SearchResults client:load />
+    </Wrapper>
+  </body>
+</html>
