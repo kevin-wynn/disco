@@ -1,16 +1,22 @@
 import { describe, it, expect, beforeAll } from "vitest";
+import { getDiscogsApiToken } from "../db/settings";
 
 const BASE_URL = "https://api.discogs.com";
 
-const hasApiToken = () => {
-  return !!process.env.PUBLIC_DISCOGS_API_TOKEN;
+let cachedToken: string | null = null;
+
+const hasApiToken = async () => {
+  if (cachedToken === null) {
+    cachedToken = await getDiscogsApiToken();
+  }
+  return !!cachedToken;
 };
 
 const makeRequest = async (url: string) => {
-  const token = process.env.PUBLIC_DISCOGS_API_TOKEN;
+  const token = await getDiscogsApiToken();
   if (!token) {
     throw new Error(
-      "PUBLIC_DISCOGS_API_TOKEN environment variable is required"
+      "Discogs API token not configured. Please set it in Settings."
     );
   }
 
@@ -29,11 +35,11 @@ const makeRequest = async (url: string) => {
   return await res.json();
 };
 
-describe.skipIf(!hasApiToken())("Discogs API Integration Tests", () => {
-  beforeAll(() => {
-    if (!hasApiToken()) {
+describe.skipIf(!(await hasApiToken()))("Discogs API Integration Tests", () => {
+  beforeAll(async () => {
+    if (!(await hasApiToken())) {
       console.warn(
-        "Skipping integration tests: PUBLIC_DISCOGS_API_TOKEN not set"
+        "Skipping integration tests: Discogs API token not configured in database"
       );
     }
   });

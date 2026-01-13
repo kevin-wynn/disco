@@ -10,13 +10,9 @@ import {
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-vi.stubGlobal("import", {
-  meta: {
-    env: {
-      PUBLIC_DISCOGS_API_TOKEN: "test-token",
-    },
-  },
-});
+vi.mock("../db/settings", () => ({
+  getDiscogsApiToken: vi.fn().mockResolvedValue("test-token"),
+}));
 
 describe("Discogs API", () => {
   beforeEach(() => {

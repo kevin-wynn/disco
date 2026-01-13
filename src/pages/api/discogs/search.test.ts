@@ -3,11 +3,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-const mockEnv = {
-  PUBLIC_DISCOGS_API_TOKEN: "test-token",
-};
-
-vi.stubGlobal("import", { meta: { env: mockEnv } });
+vi.mock("../../../db/settings", () => ({
+  getDiscogsApiToken: vi.fn().mockResolvedValue("test-token"),
+}));
 
 describe("Discogs Search API", () => {
   beforeEach(() => {
@@ -98,7 +96,7 @@ describe("Discogs Search API", () => {
       await fetch(searchUrl, {
         method: "GET",
         headers: {
-          Authorization: `Discogs token=${mockEnv.PUBLIC_DISCOGS_API_TOKEN}`,
+          Authorization: "Discogs token=test-token",
         },
       });
 

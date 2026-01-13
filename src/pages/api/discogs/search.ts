@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { getDiscogsApiToken } from "../../../db/settings";
 
 const BASE_URL = "https://api.discogs.com";
 
@@ -14,6 +15,19 @@ export const GET: APIRoute = async ({ request }) => {
     });
   }
 
+  const token = await getDiscogsApiToken();
+  if (!token) {
+    return new Response(
+      JSON.stringify({
+        error: "Discogs API token not configured. Please set it in Settings.",
+      }),
+      {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+
   const searchUrl = `${BASE_URL}/database/search?q=${encodeURIComponent(
     query
   )}&type=master&per_page=20&page=${page}`;
@@ -21,9 +35,7 @@ export const GET: APIRoute = async ({ request }) => {
   const res = await fetch(searchUrl, {
     method: "GET",
     headers: {
-      Authorization: `Discogs token=${
-        import.meta.env.PUBLIC_DISCOGS_API_TOKEN
-      }`,
+      Authorization: `Discogs token=${token}`,
     },
   });
 

@@ -33,6 +33,11 @@ export const tracks = sqliteTable("tracks", {
     .references(() => albums.id),
 });
 
+export const settings = sqliteTable("settings", {
+  id: integer("id").primaryKey(),
+  discogsApiToken: text("discogs_api_token"),
+});
+
 // Inferred types from schema
 export type Album = InferSelectModel<typeof albums>;
 export type AlbumInsert = InferInsertModel<typeof albums>;
@@ -40,3 +45,5 @@ export type Artist = InferSelectModel<typeof artists>;
 export type ArtistInsert = InferInsertModel<typeof artists>;
 export type Track = InferSelectModel<typeof tracks>;
 export type TrackInsert = InferInsertModel<typeof tracks>;
+export type Settings = InferSelectModel<typeof settings>;
+export type SettingsInsert = InferInsertModel<typeof settings>;

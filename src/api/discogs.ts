@@ -1,12 +1,19 @@
+import { getDiscogsApiToken } from "../db/settings";
+
 const BASE_URL = "https://api.discogs.com";
 
 const makeRequest = async ({ url, type }: { url: string; type: "GET" }) => {
+  const token = await getDiscogsApiToken();
+  if (!token) {
+    throw new Error(
+      "Discogs API token not configured. Please set it in Settings."
+    );
+  }
+
   const res = await fetch(url, {
     method: type,
     headers: {
-      Authorization: `Discogs token=${
-        import.meta.env.PUBLIC_DISCOGS_API_TOKEN
-      }`,
+      Authorization: `Discogs token=${token}`,
     },
   });
 

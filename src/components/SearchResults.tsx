@@ -8,7 +8,6 @@ import { AdjustmentsHorizontal } from "./Icons/AdjustmentsHorizontal";
 import { InformationCircle } from "./Icons/InformationCircle";
 import { CalendarDays } from "./Icons/CalendarDays";
 import { Button } from "./Button";
-import { getMaster } from "../api/discogs";
 import { ImageCarousel } from "./ImageCarousel";
 
 type Image = {
@@ -40,7 +39,8 @@ const ResultItem = ({ result }: { result: Result }) => {
     const fetchImages = async () => {
       if (result.type === "master" || result.type === "release") {
         try {
-          const data = await getMaster({ id: result.id });
+          const res = await fetch(`/api/discogs/master?id=${result.id}`);
+          const data = await res.json();
           setMasterData(data);
           if (data.images && data.images.length > 0) {
             setImages(data.images);
@@ -62,7 +62,13 @@ const ResultItem = ({ result }: { result: Result }) => {
   const handleButtonClick = async (id: number) => {
     setIsLoading(true);
     try {
-      const results: ReleaseResult = masterData || await getMaster({ id });
+      let results: ReleaseResult;
+      if (masterData) {
+        results = masterData;
+      } else {
+        const masterRes = await fetch(`/api/discogs/master?id=${id}`);
+        results = await masterRes.json();
+      }
       console.log("results:", results);
       const res = await fetch("/api/album", {
         method: "POST",

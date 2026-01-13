@@ -8,6 +8,9 @@ export const SettingsPanel = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isResyncing, setIsResyncing] = useState(false);
   const [resyncStatus, setResyncStatus] = useState<string | null>(null);
+  const [discogsApiToken, setDiscogsApiToken] = useState("");
+  const [isSavingToken, setIsSavingToken] = useState(false);
+  const [tokenSaveStatus, setTokenSaveStatus] = useState<string | null>(null);
 
   // TODO: the resync durations button should trigger a background job to handle resync
 
@@ -20,6 +23,16 @@ export const SettingsPanel = () => {
     } else {
       document.documentElement.classList.remove("dark");
     }
+
+    // Fetch Discogs API token from settings
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.discogsApiToken) {
+          setDiscogsApiToken(data.discogsApiToken);
+        }
+      })
+      .catch(console.error);
   }, []);
 
   const handleThemeToggle = () => {
@@ -31,6 +44,28 @@ export const SettingsPanel = () => {
     } else {
       document.documentElement.classList.remove("dark");
       localStorage.setItem("theme", "light");
+    }
+  };
+
+  const handleSaveToken = async () => {
+    setIsSavingToken(true);
+    setTokenSaveStatus(null);
+    try {
+      const response = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ discogsApiToken }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setTokenSaveStatus("API token saved successfully");
+      } else {
+        setTokenSaveStatus(`Error: ${data.error}`);
+      }
+    } catch (error) {
+      setTokenSaveStatus("Failed to save API token");
+    } finally {
+      setIsSavingToken(false);
     }
   };
 
@@ -68,7 +103,7 @@ export const SettingsPanel = () => {
             <span className="font-bold uppercase">General</span>
             <span className={`text-xs text-gray-400 inline-block transition-transform duration-300 ${generalOpen ? "rotate-180" : ""}`}>▼</span>
           </div>
-          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${generalOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"}`}>
+          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${generalOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}>
             <div className="pb-4">
               <div className="flex items-center justify-between py-2">
                 <div className="flex flex-col">
@@ -81,6 +116,38 @@ export const SettingsPanel = () => {
                 >
                   <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform duration-300 ${isDarkMode ? "translate-x-6" : "translate-x-1"}`} />
                 </div>
+              </div>
+              <div className="flex flex-col py-2">
+                <div className="flex flex-col mb-2">
+                  <span className="font-bold uppercase text-sm">Discogs API Token</span>
+                  <span className="text-sm text-gray-400">Your personal Discogs API token for fetching album data</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="password"
+                    value={discogsApiToken}
+                    onChange={(e) => setDiscogsApiToken(e.target.value)}
+                    placeholder="Enter your Discogs API token"
+                    className="bg-white py-2 px-6 rounded-full outline-none border-2 border-gray-300 w-full text-gray-800 placeholder-gray-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveToken}
+                    disabled={isSavingToken}
+                    className={`rounded-full text-white py-2 px-6 flex-shrink-0 ${
+                      isSavingToken
+                        ? "bg-gray-500 cursor-not-allowed"
+                        : "bg-green-600 hover:bg-green-700"
+                    }`}
+                  >
+                    {isSavingToken ? "Saving..." : "Save"}
+                  </button>
+                </div>
+                {tokenSaveStatus && (
+                  <div className={`mt-2 text-sm ${tokenSaveStatus.startsWith("Error") ? "text-red-500" : "text-green-500"}`}>
+                    {tokenSaveStatus}
+                  </div>
+                )}
               </div>
             </div>
           </div>
