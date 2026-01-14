@@ -107,7 +107,7 @@ export const SettingsPanel = () => {
             <div className="pb-4">
               <div className="flex items-center justify-between py-2">
                 <div className="flex flex-col">
-                  <span className="font-bold uppercase text-sm">Theme</span>
+                  <span className="font-bold uppercase text-sm">Dark Mode</span>
                   <span className="text-sm text-gray-400">Enable dark mode</span>
                 </div>
                 <div
