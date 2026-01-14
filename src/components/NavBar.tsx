@@ -11,16 +11,19 @@ const NavItem = ({
   icon,
   url,
   currentPage,
+  onClick,
 }: {
   children: ReactNode;
   icon: ReactNode;
   url: string;
   currentPage: string;
+  onClick?: () => void;
 }) => {
   return (
-    <li className="flex mb-12">
+    <li className="flex mb-8 md:mb-12">
       <a
         href={url}
+        onClick={onClick}
         className={`flex duration-200 hover:text-green-600 hover:cursor-pointer ${
           currentPage === url && "text-green-600"
         }`}
@@ -32,28 +35,29 @@ const NavItem = ({
   );
 };
 
-export const NavBar = ({ currentPage }: { currentPage: string }) => {
+export const NavBar = ({ currentPage, onNavigate }: { currentPage: string; onNavigate?: () => void }) => {
   return (
     <nav className="">
       <Logo />
       <ul>
-        <NavItem currentPage={currentPage} url="/" icon={<MusicNote />}>
+        <NavItem currentPage={currentPage} url="/" icon={<MusicNote />} onClick={onNavigate}>
           My Library
         </NavItem>
         <NavItem
           currentPage={currentPage}
           url="/genres"
           icon={<AdjustmentsHorizontal />}
+          onClick={onNavigate}
         >
           Genres
         </NavItem>
-        <NavItem currentPage={currentPage} url="/artists" icon={<User />}>
+        <NavItem currentPage={currentPage} url="/artists" icon={<User />} onClick={onNavigate}>
           Artists
         </NavItem>
-        <NavItem currentPage={currentPage} url="/add" icon={<PlusCircle />}>
+        <NavItem currentPage={currentPage} url="/add" icon={<PlusCircle />} onClick={onNavigate}>
           Add New
         </NavItem>
-        <NavItem currentPage={currentPage} url="/settings" icon={<Cog6Tooth />}>
+        <NavItem currentPage={currentPage} url="/settings" icon={<Cog6Tooth />} onClick={onNavigate}>
           Settings
         </NavItem>
       </ul>

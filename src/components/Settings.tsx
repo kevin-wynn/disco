@@ -90,7 +90,7 @@ export const SettingsPanel = () => {
   };
 
   return (
-    <div className="max-w-2xl">
+    <div className="w-full max-w-2xl">
       <h1 className="font-bold uppercase text-lg mb-6">Settings</h1>
 
       <div className="divide-y divide-gray-300 dark:divide-gray-700">
@@ -122,13 +122,13 @@ export const SettingsPanel = () => {
                   <span className="font-bold uppercase text-sm">Discogs API Token</span>
                   <span className="text-sm text-gray-400">Your personal Discogs API token for fetching album data</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <input
                     type="password"
                     value={discogsApiToken}
                     onChange={(e) => setDiscogsApiToken(e.target.value)}
                     placeholder="Enter your Discogs API token"
-                    className="bg-white py-2 px-6 rounded-full outline-none border-2 border-gray-300 w-full text-gray-800 placeholder-gray-400"
+                    className="bg-white py-2 px-4 sm:px-6 rounded-full outline-none border-2 border-gray-300 w-full text-gray-800 placeholder-gray-400"
                   />
                   <button
                     type="button"
@@ -201,7 +201,7 @@ export const SettingsPanel = () => {
           </div>
           <div className={`overflow-hidden transition-all duration-300 ease-in-out ${syncOpen ? "max-h-60 opacity-100" : "max-h-0 opacity-0"}`}>
             <div className="pb-4">
-              <div className="flex items-center justify-between py-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 gap-3">
                 <div className="flex flex-col">
                   <span className="font-bold uppercase text-sm">Resync Track Durations</span>
                   <span className="text-sm text-gray-400">Update track duration information from source</span>
@@ -210,7 +210,7 @@ export const SettingsPanel = () => {
                   type="button"
                   onClick={handleResyncDurations}
                   disabled={isResyncing}
-                  className={`rounded-full text-white py-2 px-6 flex-shrink-0 ${
+                  className={`rounded-full text-white py-2 px-6 flex-shrink-0 w-full sm:w-auto ${
                     isResyncing
                       ? "bg-gray-500 cursor-not-allowed"
                       : "bg-green-600 hover:bg-green-700"

@@ -9,16 +9,16 @@ export interface AlbumData extends Album {
 export const AlbumWithTracks = ({ album }: { album: AlbumData }) => {
   return (
     <div className="w-full flex flex-col justify-center align-middle">
-      <div className="flex mb-4">
-        <div className="w-1/3 flex flex-col mr-4">
+      <div className="flex flex-col sm:flex-row mb-4 gap-4">
+        <div className="w-full sm:w-1/3 flex flex-col">
           <img src={album.imageUrl ?? ""} alt={album.title ?? ""} className="w-full mb-2" />
         </div>
-        <div className="w-2/3 flex flex-col justify-between">
+        <div className="w-full sm:w-2/3 flex flex-col justify-between">
           <div className="flex flex-col">
-            <span className="text-2xl font-bold uppercase">{album.title}</span>
+            <span className="text-xl sm:text-2xl font-bold uppercase">{album.title}</span>
             <span className="text-sm text-gray-400">{album.genres}</span>
           </div>
-          <div className="mb-2">
+          <div className="mb-2 mt-4 sm:mt-0">
             {album.artists && !Array.isArray(album.artists) ? (
               <div>
                 <span className="text-md">
@@ -27,7 +27,7 @@ export const AlbumWithTracks = ({ album }: { album: AlbumData }) => {
                 <img
                   src={album.artists.imageUrl ?? ""}
                   alt={sanitizeArtistName(album.artists?.name ?? "")}
-                  className="w-1/4"
+                  className="w-1/3 sm:w-1/4 mt-2"
                 />
               </div>
             ) : (
@@ -37,19 +37,19 @@ export const AlbumWithTracks = ({ album }: { album: AlbumData }) => {
           </div>
         </div>
       </div>
-      <div className="w-full flex flex-col">
-        <table className="w-3/4 table-auto">
+      <div className="w-full flex flex-col overflow-x-auto">
+        <table className="w-full sm:w-3/4 table-auto min-w-0">
           <thead>
             <tr className="bg-gray-200 dark:bg-gray-800">
-              <th className="text-left p-2">Song</th>
-              <th className="text-left p-2">Duration</th>
+              <th className="text-left p-2 text-sm sm:text-base">Song</th>
+              <th className="text-left p-2 text-sm sm:text-base">Duration</th>
             </tr>
           </thead>
           <tbody>
             {album.tracks?.map((track) => (
               <tr key={track.id} className="odd:bg-gray-50 even:bg-gray-100 dark:odd:bg-gray-900 dark:even:bg-gray-800">
-                <td className="p-2">{track.title}</td>
-                <td className="p-2">{track.duration}</td>
+                <td className="p-2 text-sm sm:text-base">{track.title}</td>
+                <td className="p-2 text-sm sm:text-base whitespace-nowrap">{track.duration}</td>
               </tr>
             ))}
           </tbody>

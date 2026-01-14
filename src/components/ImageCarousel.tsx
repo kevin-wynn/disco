@@ -35,14 +35,14 @@ export const ImageCarousel = ({
 
   if (images.length === 0) {
     return (
-      <div className="flex w-1/4 mr-4 bg-gray-800 items-center justify-center aspect-square">
+      <div className="flex w-full sm:w-1/4 sm:mr-4 bg-gray-800 items-center justify-center aspect-square">
         <span className="text-gray-500">No image</span>
       </div>
     );
   }
 
   return (
-    <div className="flex w-1/4 mr-4 relative group">
+    <div className="flex w-full sm:w-1/4 sm:mr-4 relative group">
       <img
         src={images[index]?.uri || selectedImage}
         alt="Album cover"

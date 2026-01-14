@@ -10,6 +10,7 @@ const GRID_SIZE_KEY = "disco-grid-size";
 const MIN_COLUMNS = 2;
 const MAX_COLUMNS = 8;
 const DEFAULT_COLUMNS = 4;
+const MOBILE_BREAKPOINT = 640;
 
 const getInitialGridColumns = (key: string): number => {
   if (typeof window === "undefined") return DEFAULT_COLUMNS;
@@ -28,6 +29,14 @@ export const AlbumsGrid = ({ data }: { data: GridData }) => {
   const [sortField, setSortField] = useState<SortField>("album");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [gridColumns, setGridColumns] = useState(() => getInitialGridColumns(GRID_SIZE_KEY));
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const handleGridSizeChange = (value: number) => {
     setGridColumns(value);
@@ -75,8 +84,8 @@ export const AlbumsGrid = ({ data }: { data: GridData }) => {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-        <div className="relative flex-1 w-full sm:max-w-md">
+      <div className="flex flex-col gap-4">
+        <div className="relative w-full">
           <input
             type="text"
             placeholder="Search albums or artists..."
@@ -99,34 +108,35 @@ export const AlbumsGrid = ({ data }: { data: GridData }) => {
           </svg>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-gray-600 dark:text-gray-400 text-sm">Sort by:</span>
-          <select
-            value={sortField}
-            onChange={(e) => setSortField(e.target.value as SortField)}
-            className="px-4 py-2 bg-white border-2 border-gray-300 rounded-full text-gray-800 focus:outline-none focus:border-blue-500"
-          >
-            <option value="album">Album</option>
-            <option value="artist">Artist</option>
-          </select>
-          <button
-            onClick={toggleSortOrder}
-            className="px-4 py-2 bg-white border-2 border-gray-300 rounded-full text-gray-800 hover:bg-gray-50 focus:outline-none focus:border-blue-500 flex items-center gap-1"
-            title={sortOrder === "asc" ? "Ascending" : "Descending"}
-          >
-            {sortOrder === "asc" ? (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            )}
-            <span className="text-sm">{sortOrder === "asc" ? "A-Z" : "Z-A"}</span>
-          </button>
-        </div>
-        <div className="flex items-center gap-3 ml-auto">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-gray-600 dark:text-gray-400 text-sm">Sort by:</span>
+            <select
+              value={sortField}
+              onChange={(e) => setSortField(e.target.value as SortField)}
+              className="px-3 sm:px-4 py-2 bg-white border-2 border-gray-300 rounded-full text-gray-800 focus:outline-none focus:border-blue-500 text-sm"
+            >
+              <option value="album">Album</option>
+              <option value="artist">Artist</option>
+            </select>
+            <button
+              onClick={toggleSortOrder}
+              className="px-3 sm:px-4 py-2 bg-white border-2 border-gray-300 rounded-full text-gray-800 hover:bg-gray-50 focus:outline-none focus:border-blue-500 flex items-center gap-1"
+              title={sortOrder === "asc" ? "Ascending" : "Descending"}
+            >
+              {sortOrder === "asc" ? (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              )}
+              <span className="text-sm hidden sm:inline">{sortOrder === "asc" ? "A-Z" : "Z-A"}</span>
+            </button>
+          </div>
+          <div className="flex items-center gap-3 ml-auto">
           <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <rect x="3" y="3" width="7" height="7" strokeWidth={2} />
             <rect x="14" y="3" width="7" height="7" strokeWidth={2} />
@@ -148,6 +158,7 @@ export const AlbumsGrid = ({ data }: { data: GridData }) => {
             <rect x="4" y="14" width="6" height="6" strokeWidth={2} />
             <rect x="14" y="14" width="6" height="6" strokeWidth={2} />
           </svg>
+          </div>
         </div>
       </div>
 
@@ -157,8 +168,8 @@ export const AlbumsGrid = ({ data }: { data: GridData }) => {
         </div>
       ) : (
         <div
-          className="grid gap-4 items-start mt-6"
-          style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}
+          className="grid gap-2 sm:gap-4 items-start mt-6"
+          style={{ gridTemplateColumns: `repeat(${isMobile ? 2 : gridColumns}, minmax(0, 1fr))` }}
         >
           {filteredAndSortedData.map((item) => (
             <AlbumGridItem

@@ -15,8 +15,8 @@ export const SearchBar = () => {
 
   return (
     <div className="flex flex-col w-full mb-6">
-      <div className="flex">
-        <div className="mr-4 w-1/2">
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex-1">
           <input
             defaultValue=""
             placeholder="Search for releases..."
@@ -26,7 +26,7 @@ export const SearchBar = () => {
             className="bg-white py-2 px-6 rounded-full outline-none border-2 border-gray-300 w-full text-gray-800 placeholder-gray-400"
           />
         </div>
-        <div className="flex w-1/4">
+        <div className="flex sm:w-auto">
           <Button onClick={handleSearch} label="Search" />
         </div>
       </div>

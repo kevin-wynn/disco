@@ -91,7 +91,7 @@ const ResultItem = ({ result }: { result: Result }) => {
   };
 
   return (
-    <div className="flex mb-8">
+    <div className="flex flex-col sm:flex-row mb-8 gap-4">
       {imagesLoaded && images.length > 0 ? (
         <ImageCarousel
           images={images}
@@ -99,11 +99,11 @@ const ResultItem = ({ result }: { result: Result }) => {
           selectedImage={selectedImage}
         />
       ) : (
-        <div className="flex w-1/4 mr-4">
-          <img src={result.cover_image} alt="Album cover" />
+        <div className="flex w-full sm:w-1/4 sm:mr-4">
+          <img src={result.cover_image} alt="Album cover" className="w-full sm:w-auto" />
         </div>
       )}
-      <div className="flex flex-col w-3/4">
+      <div className="flex flex-col w-full sm:w-3/4">
         <span className="flex mb-4">
           <ResultIcon type={result.type} />
           <span className="ml-2">
@@ -183,13 +183,14 @@ const Pagination = () => {
   };
 
   return (
-    <div className="flex items-center justify-center gap-2 mt-8 mb-4">
+    <div className="flex flex-wrap items-center justify-center gap-2 mt-8 mb-4">
       <button
         onClick={() => handlePageChange(currentPage - 1)}
         disabled={currentPage === 1 || isLoading}
-        className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+        className="px-2 sm:px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm sm:text-base"
       >
-        Previous
+        <span className="hidden sm:inline">Previous</span>
+        <span className="sm:hidden">Prev</span>
       </button>
 
       {getPageNumbers().map((page, idx) =>
@@ -216,7 +217,7 @@ const Pagination = () => {
       <button
         onClick={() => handlePageChange(currentPage + 1)}
         disabled={currentPage === totalPages || isLoading}
-        className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+        className="px-2 sm:px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm sm:text-base"
       >
         Next
       </button>

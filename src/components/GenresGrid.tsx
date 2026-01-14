@@ -11,6 +11,7 @@ const GRID_SIZE_KEY = "disco-genres-grid-size";
 const MIN_COLUMNS = 2;
 const MAX_COLUMNS = 8;
 const DEFAULT_COLUMNS = 4;
+const MOBILE_BREAKPOINT = 640;
 
 const getInitialGridColumns = (key: string): number => {
   if (typeof window === "undefined") return DEFAULT_COLUMNS;
@@ -27,6 +28,14 @@ const getInitialGridColumns = (key: string): number => {
 export const GenresGrid = ({ data }: { data: GridData }) => {
   const [expandedGenres, setExpandedGenres] = useState<Set<string>>(new Set());
   const [gridColumns, setGridColumns] = useState(() => getInitialGridColumns(GRID_SIZE_KEY));
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const handleGridSizeChange = (value: number) => {
     setGridColumns(value);
@@ -77,11 +86,11 @@ export const GenresGrid = ({ data }: { data: GridData }) => {
   const previewCount = gridColumns;
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-6 sm:gap-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="font-bold uppercase text-lg">Genres</h1>
-        <div className="flex items-center gap-6">
-          <span className="text-gray-500 dark:text-gray-400">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+          <span className="text-gray-500 dark:text-gray-400 text-sm sm:text-base">
             {genreGroups.length} genres • {data.length} albums
           </span>
           <div className="flex items-center gap-3">
@@ -135,8 +144,8 @@ export const GenresGrid = ({ data }: { data: GridData }) => {
             </div>
 
             <div
-              className="grid gap-4 items-start"
-              style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}
+              className="grid gap-2 sm:gap-4 items-start"
+              style={{ gridTemplateColumns: `repeat(${isMobile ? 2 : gridColumns}, minmax(0, 1fr))` }}
             >
               {displayAlbums.map((item) => (
                 <AlbumGridItem
