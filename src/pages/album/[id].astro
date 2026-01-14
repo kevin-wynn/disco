@@ -15,12 +15,18 @@ import {
   AlbumWithTracks,
   type AlbumData,
 } from "../../components/AlbumWithTracks";
+import { loggy } from "../../util/loggy";
 
 const { id } = Astro.params;
+loggy.log(`Loading album page`, { page: "/album", albumId: id });
 
 let album: AlbumData | undefined;
 
 if (!id) {
+  loggy.error("Album page accessed without id", {
+    page: "/album",
+    error: "missing_id",
+  });
   Astro.response.status = 404;
   Astro.response.statusText = "Not found";
 } else {
@@ -40,6 +46,14 @@ if (!id) {
     artists: res[0].artists,
     tracks: allTracks,
   };
+  loggy.info(`Loaded album: ${album.title}`, {
+    albumId: id,
+    title: album.title,
+    trackCount: allTracks.length,
+    artist: Array.isArray(album.artists)
+      ? album.artists[0]?.name
+      : album.artists?.name,
+  });
 }
 ---
 

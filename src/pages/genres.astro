@@ -6,11 +6,16 @@ import ThemeScript from "../components/ThemeScript.astro";
 import { db } from "../db";
 import { albums, artists } from "../db/schema";
 import type { GridData } from "../types/album";
+import { loggy } from "../util/loggy";
 
+loggy.log("Loading genres page", { page: "/genres", component: "genres" });
 const res = await db
   .select()
   .from(albums)
   .leftJoin(artists, eq(albums.artistId, artists.id));
+res.length === 0
+  ? loggy.warn("No albums found for genres view", { count: 0 })
+  : loggy.info(`Found ${res.length} albums for genres`, { count: res.length });
 ---
 
 <html lang="en" class="dark">

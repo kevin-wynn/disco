@@ -6,11 +6,17 @@ import ThemeScript from "../components/ThemeScript.astro";
 import { db } from "../db";
 import { albums, artists } from "../db/schema";
 import type { GridData } from "../types/album";
+import { loggy } from "../util/loggy";
 
+loggy.log("Loading index page", { page: "/", component: "index" });
 const res = await db
   .select()
   .from(albums)
   .leftJoin(artists, eq(albums.artistId, artists.id));
+loggy.info(`Found ${res.length} albums`, {
+  count: res.length,
+  source: "database",
+});
 ---
 
 <html lang="en" class="dark">

@@ -3,6 +3,9 @@ import { SearchBar } from "../components/SearchBar";
 import { SearchResults } from "../components/SearchResults";
 import { Wrapper } from "../components/Wrapper";
 import ThemeScript from "../components/ThemeScript.astro";
+import { loggy } from "../util/loggy";
+
+loggy.log("Loading add page", { page: "/add", component: "add" });
 ---
 
 <html lang="en" class="dark">

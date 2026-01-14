@@ -2,6 +2,12 @@
 import { Wrapper } from "../components/Wrapper";
 import { SettingsPanel } from "../components/Settings";
 import ThemeScript from "../components/ThemeScript.astro";
+import { loggy } from "../util/loggy";
+
+loggy.log("Loading settings page", {
+  page: "/settings",
+  component: "settings",
+});
 ---
 
 <html lang="en" class="dark">

@@ -6,8 +6,15 @@ import ThemeScript from "../components/ThemeScript.astro";
 import { db } from "../db";
 import { artists } from "../db/schema";
 import type { Artist } from "../types/album";
+import { loggy } from "../util/loggy";
 
+loggy.info("Loading artists page", {
+  page: Astro.url.pathname,
+});
 const res = await db.select().from(artists).where(isNull(artists.deletedAt));
+loggy.info(`Found ${res.length} artists`, {
+  count: res.length,
+});
 ---
 
 <html lang="en" class="dark">

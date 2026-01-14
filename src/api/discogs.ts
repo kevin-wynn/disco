@@ -1,10 +1,13 @@
 import { getDiscogsApiToken } from "../db/settings";
+import { loggy } from "../util/loggy";
 
 const BASE_URL = "https://api.discogs.com";
 
 const makeRequest = async ({ url, type }: { url: string; type: "GET" }) => {
+  loggy.log(`Making Discogs API request`, { api: "discogs", url, method: type });
   const token = await getDiscogsApiToken();
   if (!token) {
+    loggy.error("Discogs API token not configured", { api: "discogs", error: "missing_token" });
     throw new Error(
       "Discogs API token not configured. Please set it in Settings."
     );
