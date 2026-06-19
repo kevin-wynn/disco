@@ -1,0 +1,233 @@
+---
+import { eq } from "drizzle-orm";
+import { getArtist } from "../../api/discogs";
+import ArtistDetails from "../../components/ArtistDetails";
+import ThemeScript from "../../components/ThemeScript.astro";
+import { Wrapper } from "../../components/Wrapper";
+import { db } from "../../db";
+import { updateArtistDetails } from "../../db/albums";
+import { albums, artists } from "../../db/schema";
+import { frontendTracer, loggy, metrics } from "../../util/loggy";
+
+const { id } = Astro.params;
+
+if (!id || isNaN(Number(id))) {
+  return Astro.redirect("/artists");
+}
+
+const artistId = Number(id);
+const span = frontendTracer.startSpan("page.artist", {
+  kind: "server",
+  attributes: { "http.route": `/artist/${id}`, "artist.id": artistId },
+});
+const end = metrics.startRequest();
+
+loggy.info(`Loading artist page`, {
+  artistId,
+  page: `/artist/${id}`,
+  traceId: span.context.traceId,
+  spanId: span.context.spanId,
+});
+
+// Get artist from database
+const dbSpan = frontendTracer.startSpan("db.get_artist", {
+  parent: span.context,
+  attributes: {
+    "db.operation": "select",
+    "db.table": "artists",
+    "artist.id": artistId,
+  },
+});
+
+const artistResult = await db
+  .select()
+  .from(artists)
+  .where(eq(artists.id, artistId))
+  .limit(1);
+
+dbSpan.setStatus("ok");
+dbSpan.end();
+
+if (!artistResult.length) {
+  loggy.warn(`Artist not found: ${artistId}`, {
+    artistId,
+    traceId: span.context.traceId,
+    spanId: span.context.spanId,
+  });
+  return Astro.redirect("/artists");
+}
+
+const artist = artistResult[0];
+
+// Get artist's albums from database
+const albumsSpan = frontendTracer.startSpan("db.get_artist_albums", {
+  parent: span.context,
+  attributes: {
+    "db.operation": "select",
+    "db.table": "albums",
+    "artist.id": artistId,
+  },
+});
+
+const artistAlbums = await db
+  .select()
+  .from(albums)
+  .where(eq(albums.artistId, artistId));
+
+albumsSpan.setStatus("ok");
+albumsSpan.end();
+
+// Try to fetch fresh data from Discogs if we have a discogsId
+let discogsData = null;
+if (artist.discogsId) {
+  try {
+    const discogsSpan = frontendTracer.startSpan("discogs.get_artist", {
+      parent: span.context,
+      attributes: { "discogs.artist_id": artist.discogsId },
+    });
+
+    discogsData = await getArtist({
+      id: artist.discogsId,
+      parentContext: discogsSpan.context,
+    });
+
+    discogsSpan.setStatus("ok");
+    discogsSpan.end();
+
+    // Update artist details in database if we got new data
+    if (
+      discogsData &&
+      (discogsData.profile || discogsData.urls || discogsData.images)
+    ) {
+      const updateSpan = frontendTracer.startSpan(
+        "db.update_artist_with_discogs",
+        {
+          parent: span.context,
+          attributes: { "artist.id": artistId },
+        },
+      );
+
+      await updateArtistDetails({
+        artistId,
+        artistData: {
+          profile: discogsData.profile,
+          urls: discogsData.urls || [],
+          nameVariations: discogsData.namevariations || [],
+          members: discogsData.members || [],
+          dataQuality: discogsData.data_quality,
+          imageUrl:
+            discogsData.images?.find((img: any) => img.type === "primary")
+              ?.resource_url || artist.imageUrl,
+        },
+        parentSpan: updateSpan,
+      });
+
+      updateSpan.setStatus("ok");
+      updateSpan.end();
+
+      // Refresh artist data
+      const refreshedArtist = await db
+        .select()
+        .from(artists)
+        .where(eq(artists.id, artistId))
+        .limit(1);
+
+      if (refreshedArtist.length) {
+        artist.profile = refreshedArtist[0].profile;
+        artist.urls = refreshedArtist[0].urls;
+        artist.nameVariations = refreshedArtist[0].nameVariations;
+        artist.members = refreshedArtist[0].members;
+        artist.dataQuality = refreshedArtist[0].dataQuality;
+        artist.imageUrl = refreshedArtist[0].imageUrl;
+      }
+    }
+  } catch (error) {
+    loggy.warn(`Failed to fetch Discogs data for artist ${artistId}`, {
+      artistId,
+      discogsId: artist.discogsId,
+      error: String(error),
+      traceId: span.context.traceId,
+      spanId: span.context.spanId,
+    });
+  }
+}
+
+loggy.info(`Artist page loaded successfully`, {
+  artistId,
+  artistName: artist.name,
+  albumCount: artistAlbums.length,
+  hasDiscogsData: !!discogsData,
+  traceId: span.context.traceId,
+  spanId: span.context.spanId,
+});
+
+end({
+  path: `/artist/${id}`,
+  method: "GET",
+  statusCode: Astro.response.status,
+  bytesIn: parseInt(Astro.request.headers.get("content-length") || "0"),
+  bytesOut: JSON.stringify(artist).length + artistAlbums.length,
+});
+
+span.setStatus("ok");
+span.end();
+---
+
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Disco - {artist.name}</title>
+    <ThemeScript />
+  </head>
+  <body>
+    <Wrapper client:load currentPage={Astro.url.pathname}>
+      <ArtistDetails
+        client:only="react"
+        artist={{
+          id: artist.id,
+          name: artist.name || "",
+          imageUrl: artist.imageUrl || "",
+          discogsId: artist.discogsId || 0,
+          deletedAt: artist.deletedAt || undefined,
+          profile: artist.profile || undefined,
+          urls: artist.urls
+            ? typeof artist.urls === "string"
+              ? JSON.parse(artist.urls)
+              : artist.urls
+            : [],
+          nameVariations: artist.nameVariations
+            ? typeof artist.nameVariations === "string"
+              ? JSON.parse(artist.nameVariations)
+              : artist.nameVariations
+            : [],
+          members: artist.members
+            ? typeof artist.members === "string"
+              ? JSON.parse(artist.members)
+              : artist.members
+            : [],
+          dataQuality: artist.dataQuality || undefined,
+        }}
+        albums={artistAlbums.map((album) => ({
+          id: album.id,
+          title: album.title || "",
+          year: album.year || "",
+          discogsId: album.discogsId || 0,
+          artistId: album.artistId || 0,
+          genres: album.genres || "",
+          styles: album.styles || "",
+          imageUrl: album.imageUrl || "",
+          deletedAt: album.deletedAt || undefined,
+          format: album.format || undefined,
+          country: album.country || undefined,
+          label: album.label || undefined,
+          releasedDate: album.releasedDate || undefined,
+          totalDuration: album.totalDuration || undefined,
+          trackCount: album.trackCount || undefined,
+        }))}
+      />
+    </Wrapper>
+  </body>
+</html>

@@ -2,17 +2,19 @@ export const Button = ({
   label,
   onClick,
   isLoading = false,
+  className = "",
 }: {
   label: string;
   onClick: () => Promise<void>;
   isLoading?: boolean;
+  className?: string;
 }) => {
   return (
     <button
       onClick={onClick}
       type="button"
       disabled={isLoading}
-      className="bg-green-600 rounded-full text-white py-2 px-6 duration-200 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+      className={`bg-green-600 rounded-full text-white py-2 px-6 duration-200 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
     >
       {isLoading ? (
         <svg

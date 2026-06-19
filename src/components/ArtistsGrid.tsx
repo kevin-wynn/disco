@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Artist } from "../types/album";
 import { sanitizeArtistName } from "../util/string";
 
@@ -26,12 +26,17 @@ const getInitialGridColumns = (key: string): number => {
 };
 
 export const ArtistsGrid = ({ data }: { data: Artist[] }) => {
-  const [expandedLetters, setExpandedLetters] = useState<Set<string>>(new Set());
-  const [gridColumns, setGridColumns] = useState(() => getInitialGridColumns(GRID_SIZE_KEY));
+  const [expandedLetters, setExpandedLetters] = useState<Set<string>>(
+    new Set(),
+  );
+  const [gridColumns, setGridColumns] = useState(() =>
+    getInitialGridColumns(GRID_SIZE_KEY),
+  );
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    const checkMobile = () =>
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
@@ -59,7 +64,9 @@ export const ArtistsGrid = ({ data }: { data: Artist[] }) => {
     const sorted: LetterArtists[] = Array.from(letterMap.entries())
       .map(([letter, artists]) => ({
         letter,
-        artists: artists.sort((a, b) => (a.name || "").localeCompare(b.name || "")),
+        artists: artists.sort((a, b) =>
+          (a.name || "").localeCompare(b.name || ""),
+        ),
       }))
       .sort((a, b) => {
         if (a.letter === "#") return 1;
@@ -93,7 +100,12 @@ export const ArtistsGrid = ({ data }: { data: Artist[] }) => {
             {letterGroups.length} letters • {data.length} artists
           </span>
           <div className="flex items-center gap-3">
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="w-4 h-4 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <rect x="3" y="3" width="7" height="7" strokeWidth={2} />
               <rect x="14" y="3" width="7" height="7" strokeWidth={2} />
               <rect x="3" y="14" width="7" height="7" strokeWidth={2} />
@@ -104,11 +116,18 @@ export const ArtistsGrid = ({ data }: { data: Artist[] }) => {
               min={MIN_COLUMNS}
               max={MAX_COLUMNS}
               value={gridColumns}
-              onChange={(e) => handleGridSizeChange(parseInt(e.target.value, 10))}
+              onChange={(e) =>
+                handleGridSizeChange(parseInt(e.target.value, 10))
+              }
               className="w-24 sm:w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
               title={`${gridColumns} artists per row`}
             />
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="w-5 h-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <rect x="4" y="4" width="6" height="6" strokeWidth={2} />
               <rect x="14" y="4" width="6" height="6" strokeWidth={2} />
               <rect x="4" y="14" width="6" height="6" strokeWidth={2} />
@@ -120,7 +139,9 @@ export const ArtistsGrid = ({ data }: { data: Artist[] }) => {
 
       {letterGroups.map(({ letter, artists }) => {
         const isExpanded = expandedLetters.has(letter);
-        const displayArtists = isExpanded ? artists : artists.slice(0, previewCount);
+        const displayArtists = isExpanded
+          ? artists
+          : artists.slice(0, previewCount);
         const hasMore = artists.length > previewCount;
 
         return (
@@ -129,7 +150,8 @@ export const ArtistsGrid = ({ data }: { data: Artist[] }) => {
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 {letter}
                 <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
-                  ({artists.length} {artists.length === 1 ? "artist" : "artists"})
+                  ({artists.length}{" "}
+                  {artists.length === 1 ? "artist" : "artists"})
                 </span>
               </h2>
               {hasMore && (
@@ -144,19 +166,24 @@ export const ArtistsGrid = ({ data }: { data: Artist[] }) => {
 
             <div
               className="grid gap-2 sm:gap-4 items-start"
-              style={{ gridTemplateColumns: `repeat(${isMobile ? 2 : gridColumns}, minmax(0, 1fr))` }}
+              style={{
+                gridTemplateColumns: `repeat(${isMobile ? 2 : gridColumns}, minmax(0, 1fr))`,
+              }}
             >
               {displayArtists.map((artist) => (
                 <div key={artist.id} className="flex flex-col gap-2">
-                  <div className="aspect-square overflow-hidden rounded-full bg-gray-800">
+                  <a
+                    href={`/artist/${artist.id}`}
+                    className="aspect-square overflow-hidden rounded-full bg-gray-800 hover:ring-2 hover:ring-blue-400 transition-all duration-200 group"
+                  >
                     {artist.imageUrl ? (
                       <img
                         src={artist.imageUrl}
                         alt={artist.name || "Artist"}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-500">
+                      <div className="w-full h-full flex items-center justify-center text-gray-500 group-hover:text-gray-400 transition-colors">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           fill="none"
@@ -173,13 +200,22 @@ export const ArtistsGrid = ({ data }: { data: Artist[] }) => {
                         </svg>
                       </div>
                     )}
-                  </div>
+                  </a>
                   <p
-                    className={`text-center font-medium text-gray-900 dark:text-white ${
-                      gridColumns <= 3 ? "text-base" : gridColumns <= 5 ? "text-sm" : "text-xs"
+                    className={`text-center font-medium text-gray-900 dark:text-white hover:text-blue-400 transition-colors ${
+                      gridColumns <= 3
+                        ? "text-base"
+                        : gridColumns <= 5
+                          ? "text-sm"
+                          : "text-xs"
                     }`}
                   >
-                    {sanitizeArtistName(artist.name || "")}
+                    <a
+                      href={`/artist/${artist.id}`}
+                      className="hover:underline"
+                    >
+                      {sanitizeArtistName(artist.name || "")}
+                    </a>
                   </p>
                 </div>
               ))}

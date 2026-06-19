@@ -2,17 +2,18 @@
 import { SearchBar } from "../components/SearchBar";
 import { SearchResults } from "../components/SearchResults";
 import ThemeScript from "../components/ThemeScript.astro";
+import { WishlistResults } from "../components/WishlistResults";
 import { Wrapper } from "../components/Wrapper";
 import { frontendTracer, loggy } from "../util/loggy";
 
-const span = frontendTracer.startSpan("page.add", {
+const span = frontendTracer.startSpan("page.wishlist", {
   kind: "server",
-  attributes: { "http.route": "/add", "page.name": "add" },
+  attributes: { "http.route": "/wishlist", "page.name": "wishlist" },
 });
 
-loggy.log("Loading add page", {
-  page: "/add",
-  component: "add",
+loggy.log("Loading wishlist page", {
+  page: "/wishlist",
+  component: "wishlist",
   traceId: span.context.traceId,
   spanId: span.context.spanId,
 });
@@ -27,13 +28,23 @@ span.end();
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
-    <title>Disco - Add New</title>
+    <title>Disco - Wishlist</title>
     <ThemeScript />
   </head>
   <body>
     <Wrapper client:load currentPage={Astro.url.pathname}>
-      <SearchBar client:load />
-      <SearchResults client:load currentPage={Astro.url.pathname} />
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold text-white mb-2">My Wishlist</h1>
+        <p class="text-gray-400">Albums you want to add to your collection</p>
+      </div>
+
+      <div class="mb-8">
+        <h2 class="text-xl font-semibold text-white mb-4">Add to Wishlist</h2>
+        <SearchBar client:load />
+        <SearchResults client:load currentPage={Astro.url.pathname} />
+      </div>
+
+      <WishlistResults client:load />
     </Wrapper>
   </body>
 </html>

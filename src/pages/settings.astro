@@ -1,13 +1,23 @@
 ---
-import { Wrapper } from "../components/Wrapper";
 import { SettingsPanel } from "../components/Settings";
 import ThemeScript from "../components/ThemeScript.astro";
-import { loggy } from "../util/loggy";
+import { Wrapper } from "../components/Wrapper";
+import { frontendTracer, loggy } from "../util/loggy";
+
+const span = frontendTracer.startSpan("page.settings", {
+  kind: "server",
+  attributes: { "http.route": "/settings", "page.name": "settings" },
+});
 
 loggy.log("Loading settings page", {
   page: "/settings",
   component: "settings",
+  traceId: span.context.traceId,
+  spanId: span.context.spanId,
 });
+
+span.setStatus("ok");
+span.end();
 ---
 
 <html lang="en" class="dark">

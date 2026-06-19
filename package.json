@@ -10,13 +10,18 @@
     "astro": "astro",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "backfill": "tsx scripts/backfill-album-data.ts",
+    "debug:discogs": "tsx scripts/debug-discogs-data.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.3",
     "@astrojs/react": "^3.6.2",
     "@astrojs/tailwind": "^5.1.1",
-    "@loggydev/loggy-node": "^0.0.7",
+    "@loggydev/loggy-node": "0.2.1",
     "@nanostores/react": "^0.8.0",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",
@@ -33,6 +38,7 @@
     "@types/better-sqlite3": "^7.6.11",
     "@vitest/coverage-v8": "^4.0.16",
     "drizzle-kit": "^0.24.2",
+    "tsx": "^4.21.0",
     "vitest": "^4.0.16"
   },
   "packageManager": "yarn@1.22.21+sha1.1959a18351b811cdeedbd484a8f86c3cc3bbaf72"

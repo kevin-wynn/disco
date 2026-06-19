@@ -1,22 +1,56 @@
 ---
 import { eq } from "drizzle-orm";
 import { AlbumsGrid } from "../components/AlbumsGrid";
-import { Wrapper } from "../components/Wrapper";
 import ThemeScript from "../components/ThemeScript.astro";
+import { Wrapper } from "../components/Wrapper";
 import { db } from "../db";
 import { albums, artists } from "../db/schema";
 import type { GridData } from "../types/album";
-import { loggy } from "../util/loggy";
+import { frontendTracer, loggy, metrics } from "../util/loggy";
 
-loggy.log("Loading index page", { page: "/", component: "index" });
+const span = frontendTracer.startSpan("page.index", {
+  kind: "server",
+  attributes: { "http.route": "/", "page.name": "index" },
+});
+const end = metrics.startRequest();
+
+loggy.log("Loading index page", {
+  page: "/",
+  component: "index",
+  traceId: span.context.traceId,
+  spanId: span.context.spanId,
+});
+
+const dbSpan = frontendTracer.startSpan("db.get_albums", {
+  parent: span.context,
+  attributes: { "db.operation": "select", "db.table": "albums" },
+});
+
 const res = await db
   .select()
   .from(albums)
   .leftJoin(artists, eq(albums.artistId, artists.id));
-loggy.info(`Found ${res.length} albums`, {
+
+dbSpan.setAttribute("db.result_count", res.length);
+dbSpan.setStatus("ok");
+dbSpan.end();
+
+loggy.info("Albums loaded", {
   count: res.length,
-  source: "database",
+  traceId: span.context.traceId,
+  spanId: span.context.spanId,
 });
+
+end({
+  path: "/",
+  method: "GET",
+  statusCode: Astro.response.status,
+  bytesIn: parseInt(Astro.request.headers.get("content-length") || "0"),
+  bytesOut: res.length,
+});
+
+span.setStatus("ok");
+span.end();
 ---
 
 <html lang="en" class="dark">

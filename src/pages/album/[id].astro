@@ -1,24 +1,32 @@
 ---
 import { eq } from "drizzle-orm";
-import { Wrapper } from "../../components/Wrapper";
-import ThemeScript from "../../components/ThemeScript.astro";
-import { db } from "../../db";
-import {
-  albums,
-  artists,
-  tracks,
-  type Album,
-  type Artist,
-  type Track,
-} from "../../db/schema";
 import {
   AlbumWithTracks,
   type AlbumData,
 } from "../../components/AlbumWithTracks";
-import { loggy } from "../../util/loggy";
+import ThemeScript from "../../components/ThemeScript.astro";
+import { Wrapper } from "../../components/Wrapper";
+import { db } from "../../db";
+import { albums, artists, tracks, type Track } from "../../db/schema";
+import { frontendTracer, loggy } from "../../util/loggy";
 
 const { id } = Astro.params;
-loggy.log(`Loading album page`, { page: "/album", albumId: id });
+
+const span = frontendTracer.startSpan("page.album_detail", {
+  kind: "server",
+  attributes: {
+    "http.route": "/album/[id]",
+    "page.name": "album_detail",
+    "album.id": id ?? "unknown",
+  },
+});
+
+loggy.log(`Loading album page`, {
+  page: "/album",
+  albumId: id,
+  traceId: span.context.traceId,
+  spanId: span.context.spanId,
+});
 
 let album: AlbumData | undefined;
 
@@ -26,16 +34,28 @@ if (!id) {
   loggy.error("Album page accessed without id", {
     page: "/album",
     error: "missing_id",
+    traceId: span.context.traceId,
+    spanId: span.context.spanId,
   });
+  span.setStatus("error", "Album ID missing");
+  span.end();
   Astro.response.status = 404;
   Astro.response.statusText = "Not found";
 } else {
+  const dbSpan = frontendTracer.startSpan("db.get_album_with_tracks", {
+    parent: span.context,
+    attributes: { "db.operation": "select", "album.id": parseInt(id) },
+  });
+
   const res = await db
     .select()
     .from(albums)
     .where(eq(albums.id, parseInt(id)))
     .leftJoin(artists, eq(albums.artistId, artists.id))
     .leftJoin(tracks, eq(tracks.albumId, parseInt(id)));
+
+  dbSpan.setStatus("ok");
+  dbSpan.end();
 
   const allTracks = res
     .map((item) => item.tracks)
@@ -46,6 +66,7 @@ if (!id) {
     artists: res[0].artists,
     tracks: allTracks,
   };
+
   loggy.info(`Loaded album: ${album.title}`, {
     albumId: id,
     title: album.title,
@@ -53,7 +74,14 @@ if (!id) {
     artist: Array.isArray(album.artists)
       ? album.artists[0]?.name
       : album.artists?.name,
+    traceId: span.context.traceId,
+    spanId: span.context.spanId,
   });
+
+  span.setAttribute("album.title", album.title ?? "Unknown");
+  span.setAttribute("album.track_count", allTracks.length);
+  span.setStatus("ok");
+  span.end();
 }
 ---
 

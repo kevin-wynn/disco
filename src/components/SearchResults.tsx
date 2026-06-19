@@ -1,20 +1,19 @@
-import { useState, useEffect } from "react";
 import { useStore } from "@nanostores/react";
-import { searchState, searchQuery } from "../store/Search";
+import { useEffect, useState } from "react";
+import { searchQuery, searchState } from "../store/Search";
 import type { ReleaseResult, Result } from "../types/search";
-import { User } from "./Icons/User";
-import { MusicNote } from "./Icons/MusicNote";
-import { AdjustmentsHorizontal } from "./Icons/AdjustmentsHorizontal";
-import { InformationCircle } from "./Icons/InformationCircle";
-import { CalendarDays } from "./Icons/CalendarDays";
 import { Button } from "./Button";
+import { AdjustmentsHorizontal } from "./Icons/AdjustmentsHorizontal";
+import { CalendarDays } from "./Icons/CalendarDays";
+import { InformationCircle } from "./Icons/InformationCircle";
+import { MusicNote } from "./Icons/MusicNote";
+import { User } from "./Icons/User";
 import { ImageCarousel } from "./ImageCarousel";
 
 type Image = {
   type: string;
   uri: string;
 };
-
 
 const ResultIcon = ({ type }: { type: string }) => {
   switch (type) {
@@ -28,8 +27,16 @@ const ResultIcon = ({ type }: { type: string }) => {
   }
 };
 
-const ResultItem = ({ result }: { result: Result }) => {
+const ResultItem = ({
+  result,
+  currentPage,
+}: {
+  result: Result;
+  currentPage?: string;
+}) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
+  const [showWishlistSuccess, setShowWishlistSuccess] = useState(false);
   const [images, setImages] = useState<Image[]>([]);
   const [selectedImage, setSelectedImage] = useState(result.cover_image);
   const [imagesLoaded, setImagesLoaded] = useState(false);
@@ -45,7 +52,7 @@ const ResultItem = ({ result }: { result: Result }) => {
           if (data.images && data.images.length > 0) {
             setImages(data.images);
             const primaryImage = data.images.find(
-              (img: Image) => img.type === "primary"
+              (img: Image) => img.type === "primary",
             );
             setSelectedImage(primaryImage?.uri || data.images[0].uri);
           }
@@ -90,6 +97,32 @@ const ResultItem = ({ result }: { result: Result }) => {
     }
   };
 
+  const handleWishlistClick = async (id: number) => {
+    setIsWishlistLoading(true);
+    try {
+      const res = await fetch("/api/wishlist/add", {
+        method: "POST",
+        body: JSON.stringify({
+          discogsId: id,
+          resultType: result.type,
+        }),
+      });
+
+      const json = await res.json();
+
+      if (json.success) {
+        setShowWishlistSuccess(true);
+        setTimeout(() => setShowWishlistSuccess(false), 3000);
+      } else {
+        console.error("Wishlist error:", json.error);
+      }
+    } catch (error) {
+      console.error("Error adding to wishlist:", error);
+    } finally {
+      setIsWishlistLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col sm:flex-row mb-8 gap-4">
       {imagesLoaded && images.length > 0 ? (
@@ -100,7 +133,11 @@ const ResultItem = ({ result }: { result: Result }) => {
         />
       ) : (
         <div className="flex w-full sm:w-1/4 sm:mr-4">
-          <img src={result.cover_image} alt="Album cover" className="w-full sm:w-auto" />
+          <img
+            src={result.cover_image}
+            alt="Album cover"
+            className="w-full sm:w-auto"
+          />
         </div>
       )}
       <div className="flex flex-col w-full sm:w-3/4">
@@ -128,12 +165,27 @@ const ResultItem = ({ result }: { result: Result }) => {
             <span className="ml-2">{result.format.join(", ")}</span>
           </span>
         )}
-        <div>
-          <Button
-            label="Add"
-            onClick={() => handleButtonClick(result.id)}
-            isLoading={isLoading}
-          />
+        <div className="flex gap-2 flex-col">
+          {showWishlistSuccess && (
+            <div className="bg-green-100 border border-green-400 text-green-700 px-3 py-2 rounded mb-2">
+              ✓ Added to wishlist!
+            </div>
+          )}
+          <div className="flex gap-2">
+            {currentPage !== "/wishlist" && (
+              <Button
+                label="Add to Collection"
+                onClick={() => handleButtonClick(result.id)}
+                isLoading={isLoading}
+              />
+            )}
+            <Button
+              label="Add to Wishlist"
+              onClick={() => handleWishlistClick(result.id)}
+              isLoading={isWishlistLoading}
+              className="bg-green-600 hover:bg-green-700"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -143,15 +195,15 @@ const ResultItem = ({ result }: { result: Result }) => {
 const Pagination = () => {
   const $searchState = useStore(searchState);
   const $searchQuery = useStore(searchQuery);
-  const { pagination } = $searchState;
+  const pagination = $searchState?.pagination;
   const [isLoading, setIsLoading] = useState(false);
 
-  if (pagination.pages <= 1) return null;
+  if (!pagination || pagination.pages <= 1) return null;
 
   const handlePageChange = async (page: number) => {
     setIsLoading(true);
     const res = await fetch(
-      `/api/discogs/search?q=${encodeURIComponent($searchQuery)}&page=${page}`
+      `/api/discogs/search?q=${encodeURIComponent($searchQuery)}&page=${page}`,
     );
     const results = await res.json();
     searchState.set(results);
@@ -211,7 +263,7 @@ const Pagination = () => {
           >
             {page}
           </button>
-        )
+        ),
       )}
 
       <button
@@ -223,23 +275,32 @@ const Pagination = () => {
       </button>
 
       {isLoading && (
-        <span className="ml-2 text-gray-500 dark:text-gray-400">Loading...</span>
+        <span className="ml-2 text-gray-500 dark:text-gray-400">
+          Loading...
+        </span>
       )}
     </div>
   );
 };
 
-export const SearchResults = () => {
+export const SearchResults = ({ currentPage }: { currentPage?: string }) => {
   const $searchState = useStore(searchState);
+
   return (
     <div>
-      {$searchState.results.length > 0 && (
+      {$searchState?.results && $searchState.results.length > 0 && (
         <div>
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            Page {$searchState.pagination.page} of {$searchState.pagination.pages} ({$searchState.pagination.items} results)
+            Page {$searchState.pagination?.page || 0} of{" "}
+            {$searchState.pagination?.pages || 0} (
+            {$searchState.pagination?.items || 0} results)
           </div>
           {$searchState.results.map((result) => (
-            <ResultItem result={result} key={result.id} />
+            <ResultItem
+              result={result}
+              key={result.id}
+              currentPage={currentPage}
+            />
           ))}
           <Pagination />
         </div>

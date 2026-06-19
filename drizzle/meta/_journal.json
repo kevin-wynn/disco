@@ -15,6 +15,41 @@
       "when": 1768347866383,
       "tag": "0001_smart_smiling_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1770561315663,
+      "tag": "0002_concerned_sebastian_shaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1770562843081,
+      "tag": "0003_windy_namorita",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1770563327268,
+      "tag": "0004_shiny_zombie",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1770563943274,
+      "tag": "0005_long_the_hand",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1770564179184,
+      "tag": "0006_tearful_zuras",
+      "breakpoints": true
     }
   ]
 }

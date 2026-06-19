@@ -9,6 +9,12 @@ export type Album = {
   deletedAt?: number;
   artistId: number;
   artist?: Artist;
+  format?: string;
+  country?: string;
+  label?: string;
+  releasedDate?: string;
+  totalDuration?: string;
+  trackCount?: number;
 };
 
 export type Track = {
@@ -25,12 +31,24 @@ export type Artist = {
   imageUrl: string;
   deletedAt?: number;
   discogsId: number;
+  profile?: string;
+  urls?: string[];
+  nameVariations?: string[];
+  members?: ArtistMember[];
+  dataQuality?: string;
 };
 
 export type DiscogsArtist = {
   id?: number;
   name: string;
   thumbnail_url: string;
+};
+
+export type ArtistMember = {
+  active: boolean;
+  id: number;
+  name: string;
+  resource_url: string;
 };
 
 export type GridData = {

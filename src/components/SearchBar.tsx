@@ -1,16 +1,35 @@
 import { useState } from "react";
+import { searchQuery, searchState, searchStateDefault } from "../store/Search";
 import { Button } from "./Button";
-import { searchState, searchStateDefault, searchQuery } from "../store/Search";
 
 export const SearchBar = () => {
   const [query, setQuery] = useState("");
 
   const handleSearch = async () => {
+    if (!query.trim()) return; // Don't search if empty
+
     searchState.set(searchStateDefault);
     searchQuery.set(query);
-    const res = await fetch(`/api/discogs/search?q=${encodeURIComponent(query)}`);
-    const results = await res.json();
-    searchState.set(results);
+    try {
+      const res = await fetch(
+        `/api/discogs/search?q=${encodeURIComponent(query)}`,
+      );
+
+      if (res.status === 429) {
+        console.error(
+          "Discogs API rate limit exceeded. Please wait a moment before searching again.",
+        );
+        // Optionally show a user-friendly message
+        return;
+      }
+
+      const results = await res.json();
+      searchState.set(results);
+    } catch (error) {
+      console.error("Search error:", error);
+      // Reset to default state on error
+      searchState.set(searchStateDefault);
+    }
   };
 
   return (
@@ -18,7 +37,7 @@ export const SearchBar = () => {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1">
           <input
-            defaultValue=""
+            value={query}
             placeholder="Search for releases..."
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
