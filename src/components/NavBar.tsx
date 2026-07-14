@@ -49,6 +49,14 @@ export const NavBar = ({
       <ul>
         <NavItem
           currentPage={currentPage}
+          url="/add"
+          icon={<PlusCircle />}
+          onClick={onNavigate}
+        >
+          Add New
+        </NavItem>
+        <NavItem
+          currentPage={currentPage}
           url="/"
           icon={<MusicNote />}
           onClick={onNavigate}
@@ -78,14 +86,6 @@ export const NavBar = ({
           onClick={onNavigate}
         >
           Wishlist
-        </NavItem>
-        <NavItem
-          currentPage={currentPage}
-          url="/add"
-          icon={<PlusCircle />}
-          onClick={onNavigate}
-        >
-          Add New
         </NavItem>
         <NavItem
           currentPage={currentPage}

@@ -4,22 +4,6 @@ import { SearchResults } from "../components/SearchResults";
 import ThemeScript from "../components/ThemeScript.astro";
 import { WishlistResults } from "../components/WishlistResults";
 import { Wrapper } from "../components/Wrapper";
-import { frontendTracer, loggy } from "../util/loggy";
-
-const span = frontendTracer.startSpan("page.wishlist", {
-  kind: "server",
-  attributes: { "http.route": "/wishlist", "page.name": "wishlist" },
-});
-
-loggy.log("Loading wishlist page", {
-  page: "/wishlist",
-  component: "wishlist",
-  traceId: span.context.traceId,
-  spanId: span.context.spanId,
-});
-
-span.setStatus("ok");
-span.end();
 ---
 
 <html lang="en" class="dark">

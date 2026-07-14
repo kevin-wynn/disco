@@ -274,6 +274,7 @@ const ArtistDetails = ({ artist, albums }: ArtistDetailsProps) => {
         <SimilarAlbumsSidebar
           artistName={artist.name}
           genres={albums[0]?.genres}
+          styles={albums[0]?.styles}
           year={albums[0]?.year}
           title={`Similar to ${artist.name}`}
         />

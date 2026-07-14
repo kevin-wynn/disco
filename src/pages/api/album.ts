@@ -1,9 +1,7 @@
-import type { LoggySpan } from "@loggydev/loggy-node/dist/tracing/span";
 import type { APIRoute } from "astro";
 import { getMasterVersions, getRelease } from "../../api/discogs";
 import { deleteAlbum, saveAlbum } from "../../db/albums";
 import type { Album, Track } from "../../types/album";
-import { apiTracer, loggy } from "../../util/loggy";
 
 // Helper to check if tracklist has duration data
 const hasValidDurations = (tracklist: { duration?: string }[]) =>
@@ -17,35 +15,14 @@ const formatDuration = (seconds: number): string => {
 };
 
 // Helper to get detailed release data for new albums
-const getDetailedReleaseData = async (
-  discogsData: any,
-  parentSpan?: LoggySpan,
-): Promise<any> => {
-  const span = apiTracer.startSpan("album.get_detailed_release", {
-    parent: parentSpan?.context,
-    attributes: { "discogs.id": discogsData.id },
-  });
-
+const getDetailedReleaseData = async (discogsData: any): Promise<any> => {
   // If we have master data with main_release, fetch the detailed release
   if (discogsData.main_release) {
     try {
-      loggy.info(
-        `Fetching main release ${discogsData.main_release} for detailed info`,
-        {
-          masterId: discogsData.id,
-          releaseId: discogsData.main_release,
-          traceId: span.context.traceId,
-          spanId: span.context.spanId,
-        },
-      );
-
-      const releaseData = await getRelease({
-        id: discogsData.main_release,
-        parentContext: span.context,
-      });
+      const releaseData = await getRelease({ id: discogsData.main_release });
 
       // Merge master and release data, prioritizing release data for specific fields
-      const mergedData = {
+      return {
         ...discogsData,
         formats: releaseData.formats,
         country: releaseData.country,
@@ -53,36 +30,15 @@ const getDetailedReleaseData = async (
         released: releaseData.released,
         // Keep master tracklist as it might be more complete
       };
-
-      span.setStatus("ok");
-      span.end();
-      loggy.info("Successfully merged master + release data for new album", {
-        masterId: discogsData.id,
-        releaseId: discogsData.main_release,
-        traceId: span.context.traceId,
-        spanId: span.context.spanId,
-      });
-
-      return mergedData;
-    } catch (error) {
-      loggy.warn(`Could not fetch main release for new album: ${error}`, {
-        masterId: discogsData.id,
-        releaseId: discogsData.main_release,
-        error: String(error),
-        traceId: span.context.traceId,
-        spanId: span.context.spanId,
-      });
-      span.setStatus("error", String(error));
-      span.end();
+    } catch {
       return discogsData; // Return original data if fetch fails
     }
   }
 
   // If it's already a release or no main_release, return as-is
-  span.setStatus("ok");
-  span.end();
   return discogsData;
 };
+
 const calculateTotalDuration = (tracklist: { duration?: string }[]): string => {
   let totalSeconds = 0;
 
@@ -108,6 +64,7 @@ const calculateTotalDuration = (tracklist: { duration?: string }[]): string => {
   }
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 };
+
 const getDurationFromVideos = (
   videos: { title: string; duration: number }[] | undefined,
   trackTitle: string,
@@ -124,134 +81,61 @@ const getDurationFromVideos = (
 };
 
 // Enrich tracklist with duration data from various sources
-const enrichTracklistWithDurations = async (
-  masterData: {
-    id: number;
-    main_release?: number;
-    tracklist: Track[];
-    videos?: { title: string; duration: number }[];
-  },
-  parentSpan?: LoggySpan,
-): Promise<Track[]> => {
-  const span = apiTracer.startSpan("album.enrich_tracklist", {
-    parent: parentSpan?.context,
-    attributes: { "album.id": masterData.id },
-  });
-  let tracklist = masterData.tracklist;
+const enrichTracklistWithDurations = async (masterData: {
+  id: number;
+  main_release?: number;
+  tracklist: Track[];
+  videos?: { title: string; duration: number }[];
+}): Promise<Track[]> => {
+  const tracklist = masterData.tracklist;
   let videos = masterData.videos;
 
   // If master tracklist already has valid durations, return as-is
   if (hasValidDurations(tracklist)) {
-    loggy.info("Master tracklist already has valid durations", {
-      traceId: span.context.traceId,
-      spanId: span.context.spanId,
-    });
-    span.setStatus("ok");
-    span.end();
     return tracklist;
   }
 
   // Try main release for better duration data
   if (masterData.main_release) {
     try {
-      const mainReleaseSpan = apiTracer.startSpan("album.main_release", {
-        parent: span.context,
-        attributes: { "release.id": masterData.main_release },
-      });
-      const releaseData = await getRelease({
-        id: masterData.main_release,
-        parentContext: mainReleaseSpan.context,
-      });
-      mainReleaseSpan.setStatus("ok");
-      loggy.info("Fetched main release", {
-        releaseId: masterData.main_release,
-        traceId: span.context.traceId,
-        spanId: span.context.spanId,
-      });
+      const releaseData = await getRelease({ id: masterData.main_release });
       if (releaseData?.tracklist && hasValidDurations(releaseData.tracklist)) {
-        mainReleaseSpan.end();
-        loggy.info("Main release has valid durations", {
-          releaseId: masterData.main_release,
-          traceId: span.context.traceId,
-          spanId: span.context.spanId,
-        });
-        span.setStatus("ok");
-        span.end();
         return releaseData.tracklist;
       }
       // Keep videos from release if available
       if (releaseData?.videos) {
         videos = releaseData.videos;
       }
-      mainReleaseSpan.end();
-    } catch (error) {
-      loggy.error("Error fetching main release", {
-        error: String(error),
-        releaseId: masterData.main_release,
-        traceId: span.context.traceId,
-        spanId: span.context.spanId,
-      });
+    } catch {
+      // Ignore and fall through to other strategies
     }
   }
 
   // Try other versions if main release doesn't have durations
-  loggy.info("Fetching versions", {
-    masterId: masterData.id,
-    traceId: span.context.traceId,
-    spanId: span.context.spanId,
-  });
   try {
-    const versionsData = await getMasterVersions({
-      id: masterData.id,
-      parentContext: span.context,
-    });
+    const versionsData = await getMasterVersions({ id: masterData.id });
     if (versionsData?.versions) {
       for (const version of versionsData.versions.slice(0, 5)) {
         if (version.id === masterData.main_release) continue;
         try {
-          const releaseData = await getRelease({
-            id: version.id,
-            parentContext: span.context,
-          });
+          const releaseData = await getRelease({ id: version.id });
           if (
             releaseData?.tracklist &&
             hasValidDurations(releaseData.tracklist)
           ) {
-            loggy.info("Version has valid durations", {
-              versionId: version.id,
-              traceId: span.context.traceId,
-              spanId: span.context.spanId,
-            });
-            span.setStatus("ok");
-            span.end();
             return releaseData.tracklist;
           }
           // Keep videos from release if available and we don't have any
           if (!videos && releaseData?.videos) {
             videos = releaseData.videos;
           }
-        } catch (error) {
-          loggy.warn(`Error fetching version ${version.id}`, {
-            error: String(error),
-            versionId: version.id,
-            traceId: span.context.traceId,
-            spanId: span.context.spanId,
-          });
+        } catch {
+          // Skip versions that fail to fetch
         }
       }
     }
-    loggy.info("No valid durations found in versions", {
-      masterId: masterData.id,
-      traceId: span.context.traceId,
-      spanId: span.context.spanId,
-    });
-  } catch (error) {
-    loggy.error("Error fetching versions", {
-      error: String(error),
-      masterId: masterData.id,
-      traceId: span.context.traceId,
-      spanId: span.context.spanId,
-    });
+  } catch {
+    // Ignore and fall through to video fallback
   }
 
   // Fallback: try to get durations from video data
@@ -265,48 +149,22 @@ const enrichTracklistWithDurations = async (
     });
   }
 
-  span.setStatus("ok");
-  loggy.info("No valid durations found", {
-    masterId: masterData.id,
-    traceId: span.context.traceId,
-    spanId: span.context.spanId,
-  });
-  span.end();
   return tracklist;
 };
 
 export const POST: APIRoute = async ({ request }) => {
-  // Extract parent context from incoming request headers (if any)
-  const parentContext = apiTracer.extract(Object.fromEntries(request.headers));
-
-  const rootSpan = apiTracer.startSpan("album.create", {
-    kind: "server",
-    parent: parentContext,
-    attributes: { "http.method": "POST", "http.route": "/api/album" },
-  });
-
   const data = await request.json();
-  loggy.info("Processing request", {
-    traceId: rootSpan.context.traceId,
-    spanId: rootSpan.context.spanId,
-    albumId: data.id,
-  });
-  rootSpan.setAttribute("album.title", data.title);
-  rootSpan.setAttribute("album.discogs_id", data.id);
 
   // Get detailed release data for new albums
-  const detailedData = await getDetailedReleaseData(data, rootSpan);
+  const detailedData = await getDetailedReleaseData(data);
 
   // Enrich tracklist with duration data if missing
-  const enrichedTracklist = await enrichTracklistWithDurations(
-    {
-      id: detailedData.id,
-      main_release: detailedData.main_release,
-      tracklist: detailedData.tracklist,
-      videos: detailedData.videos,
-    },
-    rootSpan,
-  );
+  const enrichedTracklist = await enrichTracklistWithDurations({
+    id: detailedData.id,
+    main_release: detailedData.main_release,
+    tracklist: detailedData.tracklist,
+    videos: detailedData.videos,
+  });
 
   const album: Album = {
     title: detailedData.title,
@@ -334,17 +192,8 @@ export const POST: APIRoute = async ({ request }) => {
     album,
     albumTracks: enrichedTracklist as [Track],
     albumArtist: data.artists,
-    parentSpan: rootSpan,
   });
 
-  rootSpan.setStatus("ok");
-  rootSpan.setAttribute("album.id", albumId);
-  rootSpan.end();
-  loggy.info("Album created", {
-    traceId: rootSpan.context.traceId,
-    spanId: rootSpan.context.spanId,
-    albumId,
-  });
   return new Response(
     JSON.stringify({
       album,
@@ -354,25 +203,11 @@ export const POST: APIRoute = async ({ request }) => {
 };
 
 export const DELETE: APIRoute = async ({ request }) => {
-  const parentContext = apiTracer.extract(Object.fromEntries(request.headers));
-
-  const rootSpan = apiTracer.startSpan("album.delete", {
-    kind: "server",
-    parent: parentContext,
-    attributes: { "http.method": "DELETE", "http.route": "/api/album" },
-  });
-
   try {
     const url = new URL(request.url);
     const albumId = url.searchParams.get("id");
 
     if (!albumId) {
-      loggy.error("Missing album ID in delete request", {
-        traceId: rootSpan.context.traceId,
-        spanId: rootSpan.context.spanId,
-      });
-      rootSpan.setStatus("error", "Missing album ID");
-      rootSpan.end();
       return new Response(JSON.stringify({ error: "Album ID is required" }), {
         status: 400,
       });
@@ -380,50 +215,18 @@ export const DELETE: APIRoute = async ({ request }) => {
 
     const albumIdNum = parseInt(albumId);
     if (isNaN(albumIdNum)) {
-      loggy.error("Invalid album ID in delete request", {
-        albumId,
-        traceId: rootSpan.context.traceId,
-        spanId: rootSpan.context.spanId,
-      });
-      rootSpan.setStatus("error", "Invalid album ID");
-      rootSpan.end();
       return new Response(JSON.stringify({ error: "Invalid album ID" }), {
         status: 400,
       });
     }
 
-    loggy.info("Processing album delete request", {
-      albumId: albumIdNum,
-      traceId: rootSpan.context.traceId,
-      spanId: rootSpan.context.spanId,
-    });
-
-    const deleted = await deleteAlbum({
-      albumId: albumIdNum,
-      parentSpan: rootSpan,
-    });
+    const deleted = await deleteAlbum({ albumId: albumIdNum });
 
     if (!deleted) {
-      loggy.warn("Album not found for deletion", {
-        albumId: albumIdNum,
-        traceId: rootSpan.context.traceId,
-        spanId: rootSpan.context.spanId,
-      });
-      rootSpan.setStatus("error", "Album not found");
-      rootSpan.end();
       return new Response(JSON.stringify({ error: "Album not found" }), {
         status: 404,
       });
     }
-
-    rootSpan.setStatus("ok");
-    rootSpan.end();
-
-    loggy.info("Album deleted successfully", {
-      albumId: albumIdNum,
-      traceId: rootSpan.context.traceId,
-      spanId: rootSpan.context.spanId,
-    });
 
     return new Response(
       JSON.stringify({
@@ -433,23 +236,9 @@ export const DELETE: APIRoute = async ({ request }) => {
       { status: 200 },
     );
   } catch (error) {
-    loggy.error("Error deleting album", {
-      error: String(error),
-      traceId: rootSpan.context.traceId,
-      spanId: rootSpan.context.spanId,
-    });
-    rootSpan.setStatus("error", String(error));
-    rootSpan.end();
+    console.error("Error deleting album:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
     });
   }
 };
-
-// export const ALL: APIRoute = ({ request }) => {
-//   return new Response(
-//     JSON.stringify({
-//       message: `This was a ${request.method}!`,
-//     })
-//   );
-// };

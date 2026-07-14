@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { getMasterVersions, getRelease } from "../../../api/discogs";
 import { addToWishlist } from "../../../db/wishlist";
-import type { Album, DiscogsArtist, Track } from "../../../types/album";
+import type { Album, DiscogsArtist } from "../../../types/album";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -51,17 +51,9 @@ export const POST: APIRoute = async ({ request }) => {
       },
     ];
 
-    // Transform tracks
-    const albumTracks: [Track] = releaseData.tracklist?.map((track: any) => ({
-      title: track.title,
-      duration: track.duration,
-      position: track.position,
-    })) as [Track];
-
     // Add to wishlist
     const wishlistId = await addToWishlist({
       album,
-      albumTracks,
       albumArtist,
       notes,
     });

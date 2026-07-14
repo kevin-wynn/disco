@@ -5,7 +5,7 @@ interface SimilarAlbumItemProps {
   album: {
     id: number;
     title: string;
-    artist: string | number;
+    artist: string;
     year?: string;
     imageUrl?: string;
     source: 'collection' | 'discogs';
@@ -26,11 +26,16 @@ export const SimilarAlbumItem = ({ album }: SimilarAlbumItemProps) => {
 
     setIsAddingToCollection(true);
     try {
+      // /api/album expects the full Discogs master payload (main_release,
+      // tracklist, etc.), so fetch the master details before saving.
+      const masterRes = await fetch(`/api/discogs/master?id=${album.id}`);
+      const masterData = await masterRes.json();
+
       const res = await fetch("/api/album", {
         method: "POST",
         body: JSON.stringify({
-          discogsId: album.id,
-          type: album.type || 'release',
+          ...masterData,
+          selectedImageUrl: album.imageUrl,
         }),
       });
 
@@ -86,7 +91,9 @@ export const SimilarAlbumItem = ({ album }: SimilarAlbumItemProps) => {
         )}
         <div className="flex-1 min-w-0">
           <h4 className="text-white font-medium text-sm truncate">{album.title}</h4>
-          <p className="text-gray-400 text-xs truncate">{typeof album.artist === 'string' ? album.artist : `Artist ID: ${album.artist}`}</p>
+          {album.artist && (
+            <p className="text-gray-400 text-xs truncate">{album.artist}</p>
+          )}
           {album.year && (
             <p className="text-gray-500 text-xs">{album.year}</p>
           )}

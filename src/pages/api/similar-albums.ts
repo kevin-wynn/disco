@@ -1,7 +1,30 @@
 import type { APIRoute } from "astro";
-import { search } from "../../api/discogs";
+import { searchSimilar } from "../../api/discogs";
 import { getAlbumsByArtist } from "../../db/albums";
 import type { Album } from "../../db/schema";
+
+// Split a stored comma-separated string ("Rock, Alternative") into a clean list.
+const parseList = (value: string | null): string[] =>
+  value
+    ? value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+
+// Discogs master search results carry a combined "Artist - Title" string.
+const splitTitle = (raw: string): { artist: string; title: string } => {
+  const separatorIndex = raw.indexOf(" - ");
+  if (separatorIndex === -1) {
+    return { artist: "", title: raw };
+  }
+  return {
+    artist: raw.slice(0, separatorIndex).trim(),
+    title: raw.slice(separatorIndex + 3).trim(),
+  };
+};
+
+const normalize = (value: string) => value.toLowerCase().trim();
 
 export const GET: APIRoute = async ({ request }) => {
   try {
@@ -9,10 +32,11 @@ export const GET: APIRoute = async ({ request }) => {
     const albumId = url.searchParams.get("albumId");
     const artistId = url.searchParams.get("artistId");
     const artistName = url.searchParams.get("artistName");
-    const genres = url.searchParams.get("genres");
+    const genres = parseList(url.searchParams.get("genres"));
+    const styles = parseList(url.searchParams.get("styles"));
     const year = url.searchParams.get("year");
 
-    if (!albumId && !artistId && !artistName) {
+    if (!albumId && !artistId && !artistName && genres.length === 0) {
       return new Response(
         JSON.stringify({ error: "Missing required parameters" }),
         {
@@ -22,80 +46,80 @@ export const GET: APIRoute = async ({ request }) => {
       );
     }
 
-    let similarAlbums: any[] = [];
+    const similarAlbums: any[] = [];
 
-    // Strategy 1: Get other albums by the same artist
+    // Strategy 1: A couple of other albums by the same artist already owned.
     if (artistId) {
       const artistAlbums = await getAlbumsByArtist(parseInt(artistId));
-      similarAlbums = artistAlbums
-        .filter((album: Album) => album.id !== parseInt(albumId!))
-        .slice(0, 3)
+      const ownedByArtist = artistAlbums
+        .filter((album: Album) => album.id !== parseInt(albumId ?? "0"))
+        .slice(0, 2)
         .map((album: Album) => ({
           id: album.id,
           title: album.title,
-          artist: album.artistId,
+          artist: artistName || "",
           year: album.year,
           imageUrl: album.imageUrl,
           source: "collection",
         }));
+      similarAlbums.push(...ownedByArtist);
     }
 
-    // Strategy 2: Search Discogs for similar albums by genre/year/artist
-    if (artistName || genres) {
-      let searchQuery = "";
+    // Strategy 2: Discover genuinely similar records from Discogs using the
+    // album's genre/style. This is the primary source of recommendations.
+    if (genres.length > 0 || styles.length > 0) {
+      try {
+        const discogsResults = await searchSimilar({
+          genres,
+          styles,
+          year: year ?? undefined,
+        });
 
-      if (artistName) {
-        searchQuery += artistName;
-      }
+        const artistNeedle = artistName ? normalize(artistName) : null;
 
-      if (genres) {
-        const genreList = genres.split(",").slice(0, 2).join(" "); // Take first 2 genres
-        searchQuery += searchQuery ? ` ${genreList}` : genreList;
-      }
-
-      if (year) {
-        // Search for albums within 2 years of the given year
-        const yearNum = parseInt(year);
-        const yearRange = `${Math.max(yearNum - 2, 1950)}..${Math.min(yearNum + 2, new Date().getFullYear())}`;
-        searchQuery += searchQuery ? ` year:${yearRange}` : `year:${yearRange}`;
-      }
-
-      if (searchQuery) {
-        try {
-          const discogsResults = await search({ query: searchQuery });
-          const discogsAlbums = discogsResults.results
-            .filter(
-              (result: any) =>
-                result.type === "master" || result.type === "release",
-            )
-            .slice(0, 5)
-            .map((result: any) => ({
+        const discogsAlbums = (discogsResults.results ?? [])
+          .filter(
+            (result: any) =>
+              (result.type === "master" || result.type === "release") &&
+              result.title,
+          )
+          .map((result: any) => {
+            const { artist, title } = splitTitle(result.title);
+            return {
               id: result.id,
-              title: result.title,
-              artist: result.artist,
+              title,
+              artist,
               year: result.year,
-              imageUrl: result.cover_image,
+              imageUrl: result.cover_image || result.thumb,
               source: "discogs",
               type: result.type,
-            }));
+            };
+          })
+          // Skip the same artist so results feel like discovery, not a
+          // discography listing.
+          .filter(
+            (album: any) =>
+              !artistNeedle || normalize(album.artist) !== artistNeedle,
+          );
 
-          similarAlbums = [...similarAlbums, ...discogsAlbums];
-        } catch (error) {
-          console.error("Discogs search error:", error);
-        }
+        similarAlbums.push(...discogsAlbums);
+      } catch (error) {
+        console.error("Discogs similar search error:", error);
       }
     }
 
-    // Remove duplicates and limit results
+    // De-duplicate by artist/title and cap the list.
+    const seen = new Set<string>();
     const uniqueAlbums = similarAlbums
-      .filter(
-        (album, index, self) =>
-          index ===
-          self.findIndex(
-            (a) => a.title === album.title && a.artist === album.artist,
-          ),
-      )
-      .slice(0, 6);
+      .filter((album) => {
+        const key = `${normalize(String(album.artist))}::${normalize(
+          String(album.title),
+        )}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, 8);
 
     return new Response(JSON.stringify({ albums: uniqueAlbums }), {
       status: 200,

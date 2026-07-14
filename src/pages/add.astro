@@ -3,22 +3,6 @@ import { SearchBar } from "../components/SearchBar";
 import { SearchResults } from "../components/SearchResults";
 import ThemeScript from "../components/ThemeScript.astro";
 import { Wrapper } from "../components/Wrapper";
-import { frontendTracer, loggy } from "../util/loggy";
-
-const span = frontendTracer.startSpan("page.add", {
-  kind: "server",
-  attributes: { "http.route": "/add", "page.name": "add" },
-});
-
-loggy.log("Loading add page", {
-  page: "/add",
-  component: "add",
-  traceId: span.context.traceId,
-  spanId: span.context.spanId,
-});
-
-span.setStatus("ok");
-span.end();
 ---
 
 <html lang="en" class="dark">

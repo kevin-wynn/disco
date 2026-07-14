@@ -6,6 +6,7 @@ interface SimilarAlbumsSidebarProps {
   artistId?: number;
   artistName?: string;
   genres?: string;
+  styles?: string;
   year?: string;
   title?: string;
 }
@@ -15,6 +16,7 @@ export const SimilarAlbumsSidebar = ({
   artistId,
   artistName,
   genres,
+  styles,
   year,
   title,
 }: SimilarAlbumsSidebarProps) => {
@@ -23,10 +25,10 @@ export const SimilarAlbumsSidebar = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (albumId || artistId || artistName) {
+    if (albumId || artistId || artistName || genres || styles) {
       loadSimilarAlbums();
     }
-  }, [albumId, artistId, artistName, genres, year]);
+  }, [albumId, artistId, artistName, genres, styles, year]);
 
   const loadSimilarAlbums = async () => {
     setLoading(true);
@@ -38,6 +40,7 @@ export const SimilarAlbumsSidebar = ({
       if (artistId) params.append('artistId', artistId.toString());
       if (artistName) params.append('artistName', artistName);
       if (genres) params.append('genres', genres);
+      if (styles) params.append('styles', styles);
       if (year) params.append('year', year);
 
       const res = await fetch(`/api/similar-albums?${params.toString()}`);
@@ -56,7 +59,7 @@ export const SimilarAlbumsSidebar = ({
     }
   };
 
-  if (!albumId && !artistId && !artistName) {
+  if (!albumId && !artistId && !artistName && !genres && !styles) {
     return null;
   }
 

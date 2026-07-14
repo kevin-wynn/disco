@@ -1127,13 +1127,6 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@loggydev/loggy-node@0.2.1":
-  version "0.2.1"
-  resolved "https://registry.yarnpkg.com/@loggydev/loggy-node/-/loggy-node-0.2.1.tgz#464a83a6d80aa54fee7152d039cc495941302772"
-  integrity sha512-y5LkgrZ29zx69Thp8eKnk0qxhP9T6FDhuvwDP1f7JnQ85ZlpoY4h8Q2GGY7U4qpEzdHRV1YQllDBDjL3o7SgdA==
-  dependencies:
-    chalk "^4.1.2"
-
 "@nanostores/react@^0.8.0":
   version "0.8.4"
   resolved "https://registry.yarnpkg.com/@nanostores/react/-/react-0.8.4.tgz#fc32d38311f5cbd63280cc28459e52596bbd5dae"
@@ -1692,7 +1685,7 @@ ansi-regex@^6.0.1:
   resolved "https://registry.yarnpkg.com/ansi-regex/-/ansi-regex-6.2.2.tgz#60216eea464d864597ce2832000738a0589650c1"
   integrity sha512-Bq3SmSpyFHaWjPk8If9yc6svM8c56dB5BAtW4Qbw5jHTwwXXcTLoRMkpDJp6VL0XzlWaCHTXrkFURMYmD0sLqg==
 
-ansi-styles@^4.0.0, ansi-styles@^4.1.0:
+ansi-styles@^4.0.0:
   version "4.3.0"
   resolved "https://registry.yarnpkg.com/ansi-styles/-/ansi-styles-4.3.0.tgz#edd803628ae71c04c85ae7a0906edad34b648937"
   integrity sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg==
@@ -1962,14 +1955,6 @@ chai@^6.2.1:
   version "6.2.2"
   resolved "https://registry.yarnpkg.com/chai/-/chai-6.2.2.tgz#ae41b52c9aca87734505362717f3255facda360e"
   integrity sha512-NUPRluOfOiTKBKvWPtSD4PhFvWCqOi0BGStNWs57X9js7XGTprSmFoz5F0tWhR4WPjNeR9jXqdC7/UpSJTnlRg==
-
-chalk@^4.1.2:
-  version "4.1.2"
-  resolved "https://registry.yarnpkg.com/chalk/-/chalk-4.1.2.tgz#aac4e2b7734a740867aeb16bf02aad556a1e7a01"
-  integrity sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==
-  dependencies:
-    ansi-styles "^4.1.0"
-    supports-color "^7.1.0"
 
 chalk@^5.3.0:
   version "5.6.2"

@@ -3,7 +3,7 @@ import { getWishlist } from "../../../db/wishlist";
 
 export const GET: APIRoute = async () => {
   try {
-    const wishlistItems = await getWishlist({});
+    const wishlistItems = await getWishlist();
     return new Response(JSON.stringify(wishlistItems), {
       status: 200,
       headers: { "Content-Type": "application/json" },

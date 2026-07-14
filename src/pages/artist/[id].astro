@@ -7,7 +7,6 @@ import { Wrapper } from "../../components/Wrapper";
 import { db } from "../../db";
 import { updateArtistDetails } from "../../db/albums";
 import { albums, artists } from "../../db/schema";
-import { frontendTracer, loggy, metrics } from "../../util/loggy";
 
 const { id } = Astro.params;
 
@@ -16,97 +15,36 @@ if (!id || isNaN(Number(id))) {
 }
 
 const artistId = Number(id);
-const span = frontendTracer.startSpan("page.artist", {
-  kind: "server",
-  attributes: { "http.route": `/artist/${id}`, "artist.id": artistId },
-});
-const end = metrics.startRequest();
-
-loggy.info(`Loading artist page`, {
-  artistId,
-  page: `/artist/${id}`,
-  traceId: span.context.traceId,
-  spanId: span.context.spanId,
-});
 
 // Get artist from database
-const dbSpan = frontendTracer.startSpan("db.get_artist", {
-  parent: span.context,
-  attributes: {
-    "db.operation": "select",
-    "db.table": "artists",
-    "artist.id": artistId,
-  },
-});
-
 const artistResult = await db
   .select()
   .from(artists)
   .where(eq(artists.id, artistId))
   .limit(1);
 
-dbSpan.setStatus("ok");
-dbSpan.end();
-
 if (!artistResult.length) {
-  loggy.warn(`Artist not found: ${artistId}`, {
-    artistId,
-    traceId: span.context.traceId,
-    spanId: span.context.spanId,
-  });
   return Astro.redirect("/artists");
 }
 
 const artist = artistResult[0];
 
 // Get artist's albums from database
-const albumsSpan = frontendTracer.startSpan("db.get_artist_albums", {
-  parent: span.context,
-  attributes: {
-    "db.operation": "select",
-    "db.table": "albums",
-    "artist.id": artistId,
-  },
-});
-
 const artistAlbums = await db
   .select()
   .from(albums)
   .where(eq(albums.artistId, artistId));
 
-albumsSpan.setStatus("ok");
-albumsSpan.end();
-
 // Try to fetch fresh data from Discogs if we have a discogsId
-let discogsData = null;
 if (artist.discogsId) {
   try {
-    const discogsSpan = frontendTracer.startSpan("discogs.get_artist", {
-      parent: span.context,
-      attributes: { "discogs.artist_id": artist.discogsId },
-    });
-
-    discogsData = await getArtist({
-      id: artist.discogsId,
-      parentContext: discogsSpan.context,
-    });
-
-    discogsSpan.setStatus("ok");
-    discogsSpan.end();
+    const discogsData = await getArtist({ id: artist.discogsId });
 
     // Update artist details in database if we got new data
     if (
       discogsData &&
       (discogsData.profile || discogsData.urls || discogsData.images)
     ) {
-      const updateSpan = frontendTracer.startSpan(
-        "db.update_artist_with_discogs",
-        {
-          parent: span.context,
-          attributes: { "artist.id": artistId },
-        },
-      );
-
       await updateArtistDetails({
         artistId,
         artistData: {
@@ -119,11 +57,7 @@ if (artist.discogsId) {
             discogsData.images?.find((img: any) => img.type === "primary")
               ?.resource_url || artist.imageUrl,
         },
-        parentSpan: updateSpan,
       });
-
-      updateSpan.setStatus("ok");
-      updateSpan.end();
 
       // Refresh artist data
       const refreshedArtist = await db
@@ -142,35 +76,9 @@ if (artist.discogsId) {
       }
     }
   } catch (error) {
-    loggy.warn(`Failed to fetch Discogs data for artist ${artistId}`, {
-      artistId,
-      discogsId: artist.discogsId,
-      error: String(error),
-      traceId: span.context.traceId,
-      spanId: span.context.spanId,
-    });
+    console.error(`Failed to fetch Discogs data for artist ${artistId}:`, error);
   }
 }
-
-loggy.info(`Artist page loaded successfully`, {
-  artistId,
-  artistName: artist.name,
-  albumCount: artistAlbums.length,
-  hasDiscogsData: !!discogsData,
-  traceId: span.context.traceId,
-  spanId: span.context.spanId,
-});
-
-end({
-  path: `/artist/${id}`,
-  method: "GET",
-  statusCode: Astro.response.status,
-  bytesIn: parseInt(Astro.request.headers.get("content-length") || "0"),
-  bytesOut: JSON.stringify(artist).length + artistAlbums.length,
-});
-
-span.setStatus("ok");
-span.end();
 ---
 
 <html lang="en" class="dark">

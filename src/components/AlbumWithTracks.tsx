@@ -449,6 +449,7 @@ export const AlbumWithTracks = ({ album }: { album: AlbumData }) => {
               : undefined
           }
           genres={album.genres || undefined}
+          styles={album.styles || undefined}
           year={album.year || undefined}
           title={album.title || undefined}
         />
